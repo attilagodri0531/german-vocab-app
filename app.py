@@ -25,18 +25,26 @@ SCOPE = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/au
 SHEET_NAME = "german_vocab_db" # Make sure this matches your Sheet name EXACTLY
 
 def get_google_sheet():
-    """Connects to Google Sheets using the JSON key."""
+    """Connects to Google Sheets using Streamlit Secrets (Cloud) or Local JSON (Laptop)"""
     try:
-        # Check if local JSON file exists
-        if os.path.exists("service_account.json"):
+        # 1. Try Streamlit Cloud Secrets first (The Pro Way)
+        if "gcp_service_account" in st.secrets:
+            # We create a dictionary from the secrets
+            key_dict = dict(st.secrets["gcp_service_account"])
+            # Load credentials from that dictionary
+            creds = ServiceAccountCredentials.from_json_keyfile_dict(key_dict, SCOPE)
+            
+        # 2. Fallback to local JSON file (For your laptop)
+        elif os.path.exists("service_account.json"):
             creds = ServiceAccountCredentials.from_json_keyfile_name("service_account.json", SCOPE)
+            
         else:
-            # Fallback for Cloud Deployment (we will use this later)
-            st.error("❌ service_account.json not found! Put it in the folder.")
+            st.error("❌ No credentials found! Check Streamlit Secrets or local JSON file.")
             st.stop()
             
         gc = gspread.authorize(creds)
         return gc.open(SHEET_NAME).sheet1
+        
     except Exception as e:
         st.error(f"❌ Connection Error: {e}")
         st.stop()
@@ -173,4 +181,5 @@ try:
         st.info("Database is empty. Add a word!")
 
 except Exception as e:
+
     st.error(f"Could not load data. Check JSON key or Sheet name. Error: {e}")
