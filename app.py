@@ -11,15 +11,26 @@ import time
 st.set_page_config(page_title="German Hustler AI (V5)", page_icon="⚡")
 
 # --- SETUP & LOGIC ---
-# Load API Keys (Cloud or Local)
-if "OPENAI_API_KEY" in st.secrets:
-    api_key = st.secrets["OPENAI_API_KEY"]
-else:
-    load_dotenv()
+load_dotenv() # Load local .env file first (safest for local)
+
+# Initialize API Key
+api_key = None
+
+# 1. Try loading from Streamlit Secrets (Best for Cloud)
+try:
+    if "OPENAI_API_KEY" in st.secrets:
+        api_key = st.secrets["OPENAI_API_KEY"]
+except Exception:
+    # If secrets file is missing (Local execution), ignore and pass
+    pass
+
+# 2. If not found in Secrets, try Local Environment (Best for Laptop)
+if not api_key:
     api_key = os.getenv("OPENAI_API_KEY")
 
+# 3. Final Check
 if not api_key:
-    st.error("❌ API Key missing!")
+    st.error("❌ API Key missing! Check .env (Local) or Secrets (Cloud).")
     st.stop()
 
 client = OpenAI(api_key=api_key)
@@ -211,3 +222,4 @@ try:
 
 except Exception as e:
     st.error(f"Error loading data: {e}")
+
